@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document - use axios</title>
+</head>
+
+<body>
+    <h1>fecth info</h1>
+    <div class="info"></div>
+    <script>
+        const info = document.querySelector('.info');
+        const url = 'http://localhost:8080/clicked';
+        fetch(url, {
+            method: 'GET', // 或者 'POST', 'PUT', 'DELETE' 等
+            headers: {
+                'Content-Type': 'application/json'
+                // 其他需要的头部
+            },
+            // mode:"no-cors"
+        })
+            .then((response) => response.body)
+            .then((rb) => {
+                const reader = rb.getReader();
+                return new ReadableStream({
+                    start(controller) {
+                        // The following function handles each data chunk
+                        function push() {
+                            // "done" is a Boolean and value a "Uint8Array"
+                            reader.read().then(({ done, value }) => {
+                                // If there is no more data to read
+                                if (done) {
+                                    console.log("done", done);
+                                    controller.close();
+                                    return;
+                                }
+                                // Get the data and send it to the browser via the controller
+                                controller.enqueue(value);
+                                // Check chunks by logging to the console
+                                console.log(done, value);
+                                push();
+                            });
+                        }
+                        push();
+                    },
+                });
+            })
+            .then((stream) => {
+                // Respond with our stream
+                console.log('stream',stream)
+                return new Response(stream, { headers: { "Content-Type": "text/html" } }).text()
+            }
+            )
+            .then((result) => {
+                // Do things with result
+                console.log(result);
+                info.innerHTML = result;
+            });
+    </script>
+</body>
+
+</html>
